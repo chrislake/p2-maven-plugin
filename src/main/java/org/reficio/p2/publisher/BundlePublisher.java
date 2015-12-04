@@ -39,14 +39,20 @@ public class BundlePublisher {
     private static final String TYCHO_VERSION = "0.18.1";
 
     private final Boolean compressSite;
+    private final Boolean append;
+    private final String artifactRepositoryLocation;
+    private final String metadataRepositoryLocation;
     private final String additionalArgs;
     private final MavenProject mavenProject;
     private final MavenSession mavenSession;
     private final BuildPluginManager buildPluginManager;
 
-    public BundlePublisher(Boolean compressSite, String additionalArgs,
+    public BundlePublisher(Boolean compressSite, Boolean append, String artifactRepositoryLocation, String metadataRepositoryLocation, String additionalArgs,
                            MavenProject mavenProject, MavenSession mavenSession, BuildPluginManager buildPluginManager) {
         this.compressSite = compressSite;
+        this.append = append;
+        this.artifactRepositoryLocation = artifactRepositoryLocation;
+        this.metadataRepositoryLocation = metadataRepositoryLocation;
         this.additionalArgs = additionalArgs;
         this.mavenProject = mavenProject;
         this.mavenSession = mavenSession;
@@ -63,6 +69,9 @@ public class BundlePublisher {
                 goal("publish-features-and-bundles"),
                 configuration(
                         element(name("compress"), Boolean.toString(compressSite)),
+                        element(name("append"), Boolean.toString(append)),
+                        element(name("artifactRepositoryLocation"), artifactRepositoryLocation),
+                        element(name("metadataRepositoryLocation"), metadataRepositoryLocation),
                         element(name("additionalArgs"), additionalArgs)
                 ),
                 executionEnvironment(
@@ -79,6 +88,9 @@ public class BundlePublisher {
 
     public static class Builder {
         private Boolean compressSite;
+        private Boolean append;
+        private String artifactRepositoryLocation;
+        private String metadataRepositoryLocation;
         private String additionalArgs;
         private MavenProject mavenProject;
         private MavenSession mavenSession;
@@ -86,6 +98,21 @@ public class BundlePublisher {
 
         public Builder compressSite(Boolean compressSite) {
             this.compressSite = compressSite;
+            return this;
+        }
+
+        public Builder append(Boolean append) {
+            this.append = append;
+            return this;
+        }
+
+        public Builder artifactRepositoryLocation(String artifactRepositoryLocation) {
+            this.artifactRepositoryLocation = artifactRepositoryLocation;
+            return this;
+        }
+
+        public Builder metadataRepositoryLocation(String metadataRepositoryLocation) {
+            this.metadataRepositoryLocation = metadataRepositoryLocation;
             return this;
         }
 
@@ -110,7 +137,7 @@ public class BundlePublisher {
         }
 
         public BundlePublisher build() {
-            return new BundlePublisher(compressSite, additionalArgs, checkNotNull(mavenProject),
+            return new BundlePublisher(compressSite, append, artifactRepositoryLocation, metadataRepositoryLocation, additionalArgs, checkNotNull(mavenProject),
                     checkNotNull(mavenSession), checkNotNull(buildPluginManager));
         }
     }

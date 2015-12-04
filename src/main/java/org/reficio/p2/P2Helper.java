@@ -177,6 +177,7 @@ public class P2Helper {
             }
         }
         // if still contains snapshot (manually set by the user) -> "SNAPSHOT" will be manually replaced
+        version = version.replaceFirst("^0*(\\d+)\\.0*(\\d+)\\.0*(\\d+)", "$1.$2.$3");
         return BundleUtils.INSTANCE.cleanupVersion(JarUtils.replaceSnapshotWithTimestamp(version));
     }
 

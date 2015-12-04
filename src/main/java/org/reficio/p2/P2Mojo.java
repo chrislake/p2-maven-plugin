@@ -119,6 +119,30 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
      * Optional line of additional arguments passed to the p2 application launcher.
      */
     @Parameter(defaultValue = "false")
+    private boolean append;
+
+    /**
+     * Optional argument to globally set source requirement.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean includeDependencies;
+
+    /**
+     * Optional argument to globally set source requirement.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean dependenciesSource;
+
+    /**
+     * Optional argument to globally set transitive requirement
+     */
+    @Parameter(defaultValue = "true")
+    private boolean dependenciesTransitive;
+
+    /**
+     * Optional line of additional arguments passed to the p2 application launcher.
+     */
+    @Parameter(defaultValue = "false")
     private boolean pedantic;
 
     /**
@@ -126,6 +150,18 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
      */
     @Parameter(defaultValue = "true")
     private boolean compressSite;
+
+    /**
+     * Specifies whether to create the categories xml file for the site.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean createCategories;
+
+    /**
+     * Specifies whether to re-process artifacts already in the destinationDirectory.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean skipExisting;
 
     /**
      * Kill the forked process after a certain number of seconds. If set to 0, wait forever for the
@@ -184,7 +220,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
      * Logger retrieved from the Maven internals.
      * It's the recommended way to do it...
      */
-    private Log log = getLog();
+    private Log log;
 
     /**
      * Folder which the jar files bundled by the ArtifactBundler will be copied to
@@ -205,6 +241,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         try {
             initializeEnvironment();
             initializeRepositorySystem();
+            processDependencies();
             processArtifacts();
             processFeatures();
             processEclipseArtifacts();
@@ -217,6 +254,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
     }
 
     private void initializeEnvironment() throws IOException {
+        log = getLog();
         Logger.initialize(log);
         bundlesDestinationFolder = new File(buildDirectory, BUNDLES_DESTINATION_FOLDER);
         featuresDestinationFolder = new File(buildDirectory, FEATURES_DESTINATION_FOLDER);
@@ -246,8 +284,21 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         return null;
     }
 
+    private void processDependencies() {
+        if (includeDependencies) {
+            for (org.apache.maven.artifact.Artifact defArtifact : project.getDependencyArtifacts()) {
+                P2Artifact p2Artifact = new P2Artifact();
+                p2Artifact.setId(defArtifact.getGroupId() + ":" + defArtifact.getArtifactId() + ":" + defArtifact.getVersion());
+                p2Artifact.setIncludeSources(dependenciesSource);
+                p2Artifact.setTransitive(dependenciesTransitive);
+                artifacts.add(p2Artifact);
+            }
+        }
+    }
+
     private void processArtifacts() {
         Multimap<P2Artifact, ResolvedArtifact> resolvedArtifacts = resolveArtifacts();
+        log.info("Resolved " + resolvedArtifacts.size() + " artifacts");
         Set<Artifact> processedArtifacts = processRootArtifacts(resolvedArtifacts);
         processTransitiveArtifacts(resolvedArtifacts, processedArtifacts);
     }
@@ -319,12 +370,12 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
     }
 
     private void logResolving(EclipseArtifact p2) {
-        log.info(String.format("Resolving artifact=[%s] source=[%s]", p2.getId(),
+        log.debug(String.format("Resolving artifact=[%s] source=[%s]", p2.getId(),
                 p2.shouldIncludeSources()));
     }
 
     private void logResolving(P2Artifact p2) {
-        log.info(String.format("Resolving artifact=[%s] transitive=[%s] source=[%s]", p2.getId(), p2.shouldIncludeTransitive(),
+        log.debug(String.format("Resolving artifact=[%s] transitive=[%s] source=[%s]", p2.getId(), p2.shouldIncludeTransitive(),
                 p2.shouldIncludeSources()));
     }
 
@@ -346,11 +397,11 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
 
     private void logResolved(ArtifactResolutionRequest resolutionRequest, ArtifactResolutionResult resolutionResult) {
         for (ResolvedArtifact resolvedArtifact : resolutionResult.getResolvedArtifacts()) {
-            log.info("\t [JAR] " + resolvedArtifact.getArtifact());
+            log.debug("\t [JAR] " + resolvedArtifact.getArtifact());
             if (resolvedArtifact.getSourceArtifact() != null) {
-                log.info("\t [SRC] " + resolvedArtifact.getSourceArtifact().toString());
+                log.debug("\t [SRC] " + resolvedArtifact.getSourceArtifact().toString());
             } else if (resolutionRequest.isResolveSource()) {
-                log.warn("\t [SRC] Failed to resolve source for artifact " + resolvedArtifact.getArtifact().toString());
+                log.debug("\t [SRC] Failed to resolve source for artifact " + resolvedArtifact.getArtifact().toString());
             }
         }
     }
@@ -380,7 +431,6 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
     private void processEclipseArtifacts() {
         DefaultEclipseResolver resolver = new DefaultEclipseResolver(projectRepos, bundlesDestinationFolder);
         for (EclipseArtifact artifact : p2) {
-            logResolving(artifact);
             String[] tokens = artifact.getId().split(":");
             if (tokens.length != 2) {
                 throw new RuntimeException("Wrong format " + artifact.getId());
@@ -401,25 +451,32 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
                 .mavenSession(session)
                 .buildPluginManager(pluginManager)
                 .compressSite(compressSite)
+                .append(append)
                 .additionalArgs(additionalArgs)
+                .artifactRepositoryLocation(destinationDirectory)
+                .metadataRepositoryLocation(destinationDirectory)
                 .build();
         publisher.execute();
     }
 
     private void prepareDestinationDirectory() throws IOException {
-        FileUtils.deleteDirectory(new File(destinationDirectory));
+        if (!append) {
+            FileUtils.deleteDirectory(new File(destinationDirectory));
+        }
     }
 
     private void executeCategoryPublisher() throws AbstractMojoExecutionException, IOException {
-        prepareCategoryLocationFile();
-        CategoryPublisher publisher = CategoryPublisher.builder()
-                .p2ApplicationLauncher(launcher)
-                .additionalArgs(additionalArgs)
-                .forkedProcessTimeoutInSeconds(forkedProcessTimeoutInSeconds)
-                .categoryFileLocation(categoryFileURL)
-                .metadataRepositoryLocation(destinationDirectory)
-                .build();
-        publisher.execute();
+        if (createCategories) {
+            prepareCategoryLocationFile();
+            CategoryPublisher publisher = CategoryPublisher.builder()
+                    .p2ApplicationLauncher(launcher)
+                    .additionalArgs(additionalArgs)
+                    .forkedProcessTimeoutInSeconds(forkedProcessTimeoutInSeconds)
+                    .categoryFileLocation(categoryFileURL)
+                    .metadataRepositoryLocation(destinationDirectory)
+                    .build();
+            publisher.execute();
+        }
     }
 
     private void prepareCategoryLocationFile() throws IOException {

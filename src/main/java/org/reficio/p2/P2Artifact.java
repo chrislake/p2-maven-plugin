@@ -116,6 +116,10 @@ public class P2Artifact {
         return source;
     }
 
+    public void setIncludeSources(boolean source) {
+        this.source = source;
+    }
+
     public List<String> getExcludes() {
         return excludes;
     }
