@@ -43,10 +43,34 @@ public class EclipseResolutionRequest {
      */
     private final boolean source;
 
+    /**
+     * Indicator as to type of bunlde requested
+     */
+    public static enum EclipseType {
+        PLUGIN("/plugins/"),
+        FEATURE("/features/");
+
+        private String dir;
+
+        EclipseType(String dir) {
+            this.dir = dir;
+        }
+
+        public String toString() {
+            return dir;
+        }
+    }
+    private final EclipseType eclipseType;
+
     public EclipseResolutionRequest(String id, String version, boolean source) {
+        this(id, version, source, EclipseType.PLUGIN);
+    }
+
+    public EclipseResolutionRequest(String id, String version, boolean source, EclipseType type) {
         this.id = id;
         this.version = version;
         this.source = source;
+        this.eclipseType = type;
     }
 
     public String getId() {
@@ -59,6 +83,10 @@ public class EclipseResolutionRequest {
 
     public boolean isSource() {
         return source;
+    }
+
+    public String getTypeDirectory() {
+        return eclipseType.toString();
     }
 
 }

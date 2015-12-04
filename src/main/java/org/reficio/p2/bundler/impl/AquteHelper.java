@@ -94,7 +94,7 @@ public class AquteHelper {
             return new Jar(jarBlankManifest);
         } finally {
             FileUtils.deleteQuietly(jarBlankManifest);
-            // do not close the newly created jar, analyzer will do it
+            jar.close();
         }
     }
 

@@ -46,7 +46,7 @@ class DefaultEclipseResolver implements EclipseResolver {
 
     File resolveBundle(EclipseResolutionRequest request) {
         String name = request.id + "_" + request.version + ".jar"
-        File result = download(name, target)
+        File result = download(name, request.getTypeDirectory(), target)
         if (!result) {
             throw new RuntimeException("Cannot resolve [$name] from any given repository")
         }
@@ -54,17 +54,17 @@ class DefaultEclipseResolver implements EclipseResolver {
 
     File resolveSource(EclipseResolutionRequest request) {
         String name = request.id + ".source" + "_" + request.version + ".jar"
-        File result = download(name, target)
+        File result = download(name, request.getTypeDirectory(), target)
         if (!result) {
             Logger.getLog().warn("Cannot resolve source [$name] from any given repository")
         }
     }
 
-    File download(String name, File destination) {
+    File download(String name, String subDirecotry, File destination) {
         File file = new File(destination, name)
         for (def repository : repositories) {
             if (repository.type == "p2") {
-                String url = repository.url + "/plugins/" + name
+                String url = repository.url + subDirecotry + name
                 Logger.getLog().info("\tDownloading: " + url)
                 try {
                     use(FileBinaryCategory)

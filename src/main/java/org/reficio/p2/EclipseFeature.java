@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.reficio.p2.resolver.eclipse;
+package org.reficio.p2;
 
 /**
  * @author Tom Bujok (tom.bujok@gmail.com)<br>
@@ -24,8 +24,20 @@ package org.reficio.p2.resolver.eclipse;
  *         http://www.reficio.org
  * @since 1.1.2
  */
-public interface EclipseResolver {
+public class EclipseFeature {
 
-    EclipseResolutionResponse resolve(EclipseResolutionRequest request);
+    /**
+     * Feature file name as it appears in the P2 update site.
+     * If the feature file is: "org.eclipse.rap.feature.feature.group_2.0.0.20130205-1849" the id is: "org.eclipse.rap.feature.feature.group:2.0.0.20130205-1849".
+     */
+    private String id;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
 }

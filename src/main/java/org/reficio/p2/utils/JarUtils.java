@@ -159,7 +159,7 @@ public class JarUtils {
             ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(unsignedJar));
             try {
                 ZipFile zip = new ZipFile(jar);
-                for (Enumeration list = zip.entries(); list.hasMoreElements(); ) {
+                for (Enumeration<?> list = zip.entries(); list.hasMoreElements(); ) {
                     ZipEntry entry = (ZipEntry) list.nextElement();
                     String name = entry.getName();
                     if (entry.isDirectory()) {
@@ -178,6 +178,7 @@ public class JarUtils {
                 }
                 IOUtils.closeQuietly(zipOutputStream);
                 FileUtils.copyFile(unsignedJar, jar);
+                zip.close();
             } finally {
                 IOUtils.closeQuietly(zipOutputStream);
             }
@@ -192,7 +193,7 @@ public class JarUtils {
         try {
             ZipFile zip = new ZipFile(jarToUnsign);
             try {
-                for (Enumeration list = zip.entries(); list.hasMoreElements(); ) {
+                for (Enumeration<?> list = zip.entries(); list.hasMoreElements(); ) {
                     ZipEntry entry = (ZipEntry) list.nextElement();
                     String name = entry.getName();
                     if (!entry.isDirectory() && (name.endsWith(".RSA") || name.endsWith(".DSA") || name.endsWith(".SF"))) {

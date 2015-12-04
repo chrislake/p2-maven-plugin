@@ -28,7 +28,7 @@ public class EclipseArtifact {
 
     /**
      * Artifact file name as it appears in the P2 update site.
-     * If the artifact file is: "org.junit_4.11.0.v201303080030.jar the id is: "org.junit:_4.11.0.v201303080030".
+     * If the artifact file is: "org.junit_4.11.0.v201303080030.jar" the id is: "org.junit:4.11.0.v201303080030".
      */
     private String id;
 

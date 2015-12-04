@@ -49,6 +49,7 @@ import org.reficio.p2.logger.Logger;
 import org.reficio.p2.publisher.BundlePublisher;
 import org.reficio.p2.publisher.CategoryPublisher;
 import org.reficio.p2.resolver.eclipse.EclipseResolutionRequest;
+import org.reficio.p2.resolver.eclipse.EclipseResolutionRequest.EclipseType;
 import org.reficio.p2.resolver.eclipse.impl.DefaultEclipseResolver;
 import org.reficio.p2.resolver.maven.Artifact;
 import org.reficio.p2.resolver.maven.ArtifactResolutionRequest;
@@ -217,6 +218,12 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
     private List<EclipseArtifact> p2;
 
     /**
+     * A list of Eclipse features that should be downloaded from P2 repositories
+     */
+    @Parameter(readonly = true)
+    private List<EclipseFeature> p2Features;
+
+    /**
      * Logger retrieved from the Maven internals.
      * It's the recommended way to do it...
      */
@@ -245,6 +252,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
             processArtifacts();
             processFeatures();
             processEclipseArtifacts();
+            processEclipseFeatures();
             executeP2PublisherPlugin();
             executeCategoryPublisher();
             cleanupEnvironment();
@@ -298,7 +306,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
 
     private void processArtifacts() {
         Multimap<P2Artifact, ResolvedArtifact> resolvedArtifacts = resolveArtifacts();
-        log.info("Resolved " + resolvedArtifacts.size() + " artifacts");
+        log.info("Resolving " + resolvedArtifacts.size() + " artifacts");
         Set<Artifact> processedArtifacts = processRootArtifacts(resolvedArtifacts);
         processTransitiveArtifacts(resolvedArtifacts, processedArtifacts);
     }
@@ -341,7 +349,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         // artifacts should already have been resolved by processArtifacts()
         Multimap<P2Artifact, ResolvedArtifact> resolvedFeatures = resolveFeatures();
         // then bundle the artifacts including the transitive dependencies (if specified so)
-        log.info("Resolved " + resolvedFeatures.size() + " features");
+        log.info("Resolving " + resolvedFeatures.size() + " features");
         for (P2Artifact p2Artifact : features) {
             for (ResolvedArtifact resolvedArtifact : resolvedFeatures.get(p2Artifact)) {
                 handleFeature(p2Artifact, resolvedArtifact);
@@ -372,6 +380,10 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
     private void logResolving(EclipseArtifact p2) {
         log.debug(String.format("Resolving artifact=[%s] source=[%s]", p2.getId(),
                 p2.shouldIncludeSources()));
+    }
+
+    private void logResolving(EclipseFeature p2Feature) {
+        log.debug(String.format("Resolving feature=[%s]", p2Feature.getId()));
     }
 
     private void logResolving(P2Artifact p2) {
@@ -430,13 +442,35 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
 
     private void processEclipseArtifacts() {
         DefaultEclipseResolver resolver = new DefaultEclipseResolver(projectRepos, bundlesDestinationFolder);
+        log.info("Resolving " + p2.size() + " p2 artifacts");
         for (EclipseArtifact artifact : p2) {
             String[] tokens = artifact.getId().split(":");
             if (tokens.length != 2) {
                 throw new RuntimeException("Wrong format " + artifact.getId());
             }
-            EclipseResolutionRequest request = new EclipseResolutionRequest(tokens[0], tokens[1], artifact.shouldIncludeSources());
-            resolver.resolve(request);
+            boolean alreadyDownloaded = new File(destinationDirectory + "/plugins", artifact.getId().replace(":", "_") + ".jar").exists();
+            if (!(alreadyDownloaded && skipExisting)) {
+                logResolving(artifact);
+                EclipseResolutionRequest request = new EclipseResolutionRequest(tokens[0], tokens[1], artifact.shouldIncludeSources(), EclipseType.PLUGIN);
+                resolver.resolve(request);
+            }
+        }
+    }
+
+    private void processEclipseFeatures() {
+        DefaultEclipseResolver resolver = new DefaultEclipseResolver(projectRepos, featuresDestinationFolder);
+        log.info("Resolving " + p2Features.size() + " p2 features");
+        for (EclipseFeature feature : p2Features) {
+            String[] tokens = feature.getId().split(":");
+            if (tokens.length != 2) {
+                throw new RuntimeException("Wrong format " + feature.getId());
+            }
+            boolean alreadyDownloaded = new File(destinationDirectory + "/features", feature.getId().replace(":", "_") + ".jar").exists();
+            if (!(alreadyDownloaded && skipExisting)) {
+                logResolving(feature);
+                EclipseResolutionRequest request = new EclipseResolutionRequest(tokens[0], tokens[1], false, EclipseType.FEATURE);
+                resolver.resolve(request);
+            }
         }
     }
 

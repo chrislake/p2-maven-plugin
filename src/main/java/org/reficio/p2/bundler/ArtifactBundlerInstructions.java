@@ -42,7 +42,7 @@ public final class ArtifactBundlerInstructions {
     private final Boolean snapshot;
 
     private ArtifactBundlerInstructions(String name, String symbolicName, String symbolicNameWithOptions, String version, String sourceName,
-                                        String sourceSymbolicName, String proposedVersion, Map instructions,
+                                        String sourceSymbolicName, String proposedVersion, Map<?, ?> instructions,
                                         Boolean snapshot) {
         this.name = name;
         this.symbolicName = symbolicName;
@@ -67,7 +67,7 @@ public final class ArtifactBundlerInstructions {
         private String sourceName;
         private String sourceSymbolicName;
         private String proposedVersion;
-        private Map<?, ?> instructions = new HashMap();
+        private Map<?, ?> instructions = new HashMap<Object, Object>();
         private Boolean snapshot;
 
         public Builder name(String name) {

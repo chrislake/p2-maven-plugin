@@ -118,7 +118,8 @@ public class BundleUtils extends BundlePlugin {
         }
     }
 
-    public static Properties transformDirectives(Map instructions) {
+    @SuppressWarnings("unchecked")
+    public static Properties transformDirectives(Map<?, ?> instructions) {
         Properties properties = new Properties();
         properties.putAll(BundlePlugin.transformDirectives(instructions));
         return properties;
