@@ -32,12 +32,22 @@ public class EclipseFeature {
      */
     private String id;
 
+    private boolean transitive = false;
+
     public String getId() {
         return id;
     }
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public boolean isTransitive() {
+        return transitive;
+    }
+
+    public void setTransitive(boolean transitive) {
+        this.transitive = transitive;
     }
 
 }

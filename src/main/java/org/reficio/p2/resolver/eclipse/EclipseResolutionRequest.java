@@ -62,6 +62,8 @@ public class EclipseResolutionRequest {
     }
     private final EclipseType eclipseType;
 
+    private String sourceURL;
+
     public EclipseResolutionRequest(String id, String version, boolean source) {
         this(id, version, source, EclipseType.PLUGIN);
     }
@@ -87,6 +89,14 @@ public class EclipseResolutionRequest {
 
     public String getTypeDirectory() {
         return eclipseType.toString();
+    }
+
+    public String getSourceURL() {
+        return sourceURL;
+    }
+
+    public void setSourceURL(String sourceURL) {
+        this.sourceURL = sourceURL;
     }
 
 }

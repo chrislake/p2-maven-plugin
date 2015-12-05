@@ -46,6 +46,7 @@ import org.reficio.p2.bundler.ArtifactBundlerInstructions;
 import org.reficio.p2.bundler.ArtifactBundlerRequest;
 import org.reficio.p2.bundler.impl.AquteBundler;
 import org.reficio.p2.logger.Logger;
+import org.reficio.p2.mirror.BundleMirror;
 import org.reficio.p2.publisher.BundlePublisher;
 import org.reficio.p2.publisher.CategoryPublisher;
 import org.reficio.p2.resolver.eclipse.EclipseResolutionRequest;
@@ -450,6 +451,9 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
                 throw new RuntimeException("Wrong format " + artifact.getId());
             }
             boolean alreadyDownloaded = new File(destinationDirectory + "/plugins", artifact.getId().replace(":", "_") + ".jar").exists();
+            if (artifact.shouldIncludeSources()) {
+                alreadyDownloaded = alreadyDownloaded && new File(destinationDirectory + "/plugins", artifact.getId().replace(":", ".source_") + ".jar").exists();
+            }
             if (!(alreadyDownloaded && skipExisting)) {
                 logResolving(artifact);
                 EclipseResolutionRequest request = new EclipseResolutionRequest(tokens[0], tokens[1], artifact.shouldIncludeSources(), EclipseType.PLUGIN);
@@ -458,7 +462,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         }
     }
 
-    private void processEclipseFeatures() {
+    private void processEclipseFeatures() throws IOException, MojoExecutionException {
         DefaultEclipseResolver resolver = new DefaultEclipseResolver(projectRepos, featuresDestinationFolder);
         log.info("Resolving " + p2Features.size() + " p2 features");
         for (EclipseFeature feature : p2Features) {
@@ -471,6 +475,42 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
                 logResolving(feature);
                 EclipseResolutionRequest request = new EclipseResolutionRequest(tokens[0], tokens[1], false, EclipseType.FEATURE);
                 resolver.resolve(request);
+
+                if (feature.isTransitive()) {
+                    BundleMirror mirror;
+//                  if (skipExisting) {
+//                      mirror = BundleMirror.builder()
+//                          .mavenProject(project)
+//                          .mavenSession(session)
+//                          .buildPluginManager(pluginManager)
+//
+//                          .sourceURL(request.getSourceURL())
+//                          .iuId(tokens[0] + ".feature.group")
+//                          .iuVersion(tokens[1])
+//                          .includePacked(false)
+//                          .followStrictOnly(true)
+//                          .append(append)
+//                          .additionalArgs("-compare -compareAgainst " + request.getSourceURL())
+//                          .destination(buildDirectory + BUNDLES_TOP_FOLDER)
+//                          .build();
+//                  }
+//                  else {
+                        mirror = BundleMirror.builder()
+                                .mavenProject(project)
+                                .mavenSession(session)
+                                .buildPluginManager(pluginManager)
+
+                                .sourceURL(request.getSourceURL())
+                                .iuId(tokens[0] + ".feature.group")
+                                .iuVersion(tokens[1])
+                                .includePacked(false)
+                                .followStrictOnly(true)
+                                .append(append)
+                                .destination(buildDirectory + BUNDLES_TOP_FOLDER)
+                                .build();
+//                  }
+                    mirror.execute();
+                }
             }
         }
     }
