@@ -272,6 +272,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         artifacts = artifacts != null ? artifacts : new ArrayList<P2Artifact>();
         features = features != null ? features : new ArrayList<P2Artifact>();
         p2 = p2 != null ? p2 : new ArrayList<EclipseArtifact>();
+        p2Features = p2Features != null ? p2Features : new ArrayList<EclipseFeature>();
     }
 
     private void initializeRepositorySystem() {
