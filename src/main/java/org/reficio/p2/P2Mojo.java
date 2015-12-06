@@ -507,6 +507,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
                                 .followStrictOnly(true)
                                 .append(append)
                                 .destination(buildDirectory + BUNDLES_TOP_FOLDER)
+                                .filter(feature.getFilter())
                                 .build();
 //                  }
                     mirror.execute();

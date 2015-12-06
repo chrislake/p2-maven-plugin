@@ -18,6 +18,9 @@
  */
 package org.reficio.p2;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author Tom Bujok (tom.bujok@gmail.com)<br>
  *         Reficio (TM) - Reestablish your software!<br>
@@ -34,6 +37,8 @@ public class EclipseFeature {
 
     private boolean transitive = false;
 
+    private Map<String, String> filter = new HashMap<String, String>();
+
     public String getId() {
         return id;
     }
@@ -48,6 +53,10 @@ public class EclipseFeature {
 
     public void setTransitive(boolean transitive) {
         this.transitive = transitive;
+    }
+
+    public Map<String, String> getFilter() {
+        return filter;
     }
 
 }

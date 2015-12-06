@@ -22,8 +22,14 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.*;
@@ -45,13 +51,14 @@ public class BundleMirror {
     private final String destination;
     private final String iuId;
     private final String iuVersion;
+    private final Map<String, String> filter;
     private final String additionalArgs;
     private final MavenProject mavenProject;
     private final MavenSession mavenSession;
     private final BuildPluginManager buildPluginManager;
 
-    public BundleMirror(Boolean includePacked, Boolean followStrictOnly, Boolean append, String sourceURL, String destination, String additionalArgs,
-            String iuId, String iuVersion, MavenProject mavenProject, MavenSession mavenSession, BuildPluginManager buildPluginManager) {
+    public BundleMirror(Boolean includePacked, Boolean followStrictOnly, Boolean append, String sourceURL, String destination, String iuId, String iuVersion,
+            Map<String, String> filter, String additionalArgs, MavenProject mavenProject, MavenSession mavenSession, BuildPluginManager buildPluginManager) {
         this.includePacked = includePacked;
         this.followStrictOnly = followStrictOnly;
         this.append = append;
@@ -59,6 +66,7 @@ public class BundleMirror {
         this.destination = destination;
         this.iuId = iuId;
         this.iuVersion = iuVersion;
+        this.filter = (filter==null) ? new HashMap<String, String>() : filter;
         this.additionalArgs = additionalArgs;
         this.mavenProject = mavenProject;
         this.mavenSession = mavenSession;
@@ -66,6 +74,28 @@ public class BundleMirror {
     }
 
     public void execute() throws MojoExecutionException, IOException {
+
+        Xpp3Dom config = configuration(element(name("includePacked"), Boolean.toString(includePacked)),
+                element(name("followStrictOnly"), Boolean.toString(followStrictOnly)),
+                element(name("append"), Boolean.toString(append)),
+                element(name("source"),
+                    element(name("repository"),
+                        element(name("url"),sourceURL))),
+                element(name("ius"),
+                    element(name("iu"),
+                        element(name("id"), iuId),
+                        element(name("version"),iuVersion))),
+                element(name("destination"), destination)//,
+//              element(name("additionalArgs"), additionalArgs)
+                );
+
+        if (!filter.isEmpty()) {
+            List<Element> elements = new ArrayList<Element>();
+            for (Entry<String, String> entry : filter.entrySet()) {
+                elements.add(element(entry.getKey(), entry.getValue()));
+            }
+            config.addChild(element("filter", elements.toArray(new Element[elements.size()])).toDom());
+        }
         executeMojo(
                 plugin(
                         groupId("org.eclipse.tycho.extras"),
@@ -73,20 +103,7 @@ public class BundleMirror {
                         version(TYCHO_VERSION)
                 ),
                 goal("mirror"),
-                configuration(
-                        element(name("includePacked"), Boolean.toString(includePacked)),
-                        element(name("followStrictOnly"), Boolean.toString(followStrictOnly)),
-                        element(name("append"), Boolean.toString(append)),
-                        element(name("source"),
-                            element(name("repository"),
-                                element(name("url"),sourceURL))),
-                        element(name("ius"),
-                            element(name("iu"),
-                                element(name("id"), iuId),
-                                element(name("version"),iuVersion))),
-                        element(name("destination"), destination)//,
-//                        element(name("additionalArgs"), additionalArgs)
-                ),
+                config,
                 executionEnvironment(
                         mavenProject,
                         mavenSession,
@@ -107,6 +124,7 @@ public class BundleMirror {
         private String destination;
         private String iuId;
         private String iuVersion;
+        private Map<String, String> filter;
         private String additionalArgs;
         private MavenProject mavenProject;
         private MavenSession mavenSession;
@@ -147,6 +165,11 @@ public class BundleMirror {
             return this;
         }
 
+        public Builder filter(Map<String, String> filter) {
+            this.filter = filter;
+            return this;
+        }
+
         public Builder additionalArgs(String additionalArgs) {
             this.additionalArgs = additionalArgs;
             return this;
@@ -168,8 +191,8 @@ public class BundleMirror {
         }
 
         public BundleMirror build() {
-            return new BundleMirror(includePacked, followStrictOnly, append, sourceURL, destination, additionalArgs,
-                    iuId, iuVersion, checkNotNull(mavenProject), checkNotNull(mavenSession), checkNotNull(buildPluginManager));
+            return new BundleMirror(includePacked, followStrictOnly, append, sourceURL, destination, iuId, iuVersion,
+                    filter, additionalArgs, checkNotNull(mavenProject), checkNotNull(mavenSession), checkNotNull(buildPluginManager));
         }
     }
 }
