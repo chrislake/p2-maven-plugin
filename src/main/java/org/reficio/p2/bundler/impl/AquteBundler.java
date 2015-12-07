@@ -54,24 +54,52 @@ public class AquteBundler implements ArtifactBundler {
         this.pedantic = pedantic;
     }
 
-    public void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions) {
-        log().info("Executing Bundler:");
+    @Override
+    public void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, String finalDestinationDirectory) {
+
+        String proposedBinaryJarName = request.getBinaryOutputFile().getName();
+        proposedBinaryJarName = instructions.getSymbolicName() + "_" + instructions.getVersion() + ".jar";
+
+        String proposedSourceJarName = "";
+        if (request.isShouldBundleSourceFile()) {
+            proposedSourceJarName = request.getSourceOutputFile().getName();
+            proposedSourceJarName = instructions.getSourceSymbolicName() + "_" + instructions.getVersion() + ".jar";
+        }
+
+        File binaryFinalFile = new File(finalDestinationDirectory + "\\plugins", proposedBinaryJarName);
+        boolean shouldCopy = binaryFinalFile.exists() ? !BundleUtils.INSTANCE.isBundle(binaryFinalFile) : true;
+        File sourceFinalFile = new File(finalDestinationDirectory + "\\plugins", proposedSourceJarName);
+        boolean shouldCopySource = sourceFinalFile.exists() ? !BundleUtils.INSTANCE.isBundle(sourceFinalFile) : true;
+
         try {
-            doWrap(request, instructions);
-            doSourceWrap(request, instructions);
+            log().debug("Executing Bundler:");
+            doWrap(request, instructions, shouldCopy);
+            doSourceWrap(request, instructions, shouldCopySource);
         } catch (Exception ex) {
             throw new RuntimeException("Error while bundling jar or source: " + request.getBinaryInputFile().getName(), ex);
         }
     }
 
-    private void doWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions) throws Exception {
-        prepareOutputFile(request.getBinaryOutputFile());
-        if (request.isShouldBundleBinaryFile()) {
+    private void doWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, boolean shouldCopy) throws Exception {
+        if (request.isShouldBundleBinaryFile() && shouldCopy) {
+            forceMkdirSilently(new File(request.getBinaryOutputFile().getParent()));
+            prepareOutputFile(request.getBinaryOutputFile());
             log().info("\t [EXEC] " + request.getBinaryInputFile().getName());
             handleVanillaJarWrap(request, instructions);
         } else {
-            log().info("\t [SKIP] " + request.getBinaryInputFile().getName());
-            handleBundleJarWrap(request, instructions);
+            log().debug("\t [SKIP] " + request.getBinaryInputFile().getName());
+            if (shouldCopy) {
+                handleBundleJarWrap(request, instructions);
+            }
+        }
+    }
+
+    private static File forceMkdirSilently(File folder) {
+        try {
+            FileUtils.forceMkdir(folder);
+            return folder;
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
@@ -128,31 +156,34 @@ public class AquteBundler implements ArtifactBundler {
         }
     }
 
-    private void doSourceWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions) throws Exception {
-        if (request.getSourceInputFile() == null) {
-            return;
-        }
-        log().info("\t [EXEC] " + request.getSourceInputFile().getName());
-        String symbolicName = instructions.getSourceSymbolicName();
-        String referencedBundleSymbolicName = instructions.getSymbolicName();
-        String version;
-        if (request.isShouldBundleBinaryFile()) {
-            // take user-defined or proposed version
-            version = instructions.getVersion();
-        } else {
-            // do not take user-defined and take proposed version
-            // there is no bundling -> so cannot take version from instructions
-            version = instructions.getProposedVersion();
-        }
-        String name = instructions.getSourceName();
-        Jar jar = new Jar(request.getSourceInputFile());
-        try {
-            Manifest manifest = getManifest(jar);
-            decorateSourceManifest(manifest, name, referencedBundleSymbolicName, symbolicName, version);
-            jar.setManifest(manifest);
-            jar.write(request.getSourceOutputFile());
-        } finally {
-            jar.close();
+    private void doSourceWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, boolean shouldCopySource) throws Exception {
+        if (request.isShouldBundleSourceFile() && shouldCopySource) {
+            if (request.getSourceInputFile() == null) {
+                return;
+            }
+            log().info("\t [EXEC] " + request.getSourceInputFile().getName());
+            FileUtils.forceMkdir(new File(request.getSourceOutputFile().getParent()));
+            String symbolicName = instructions.getSourceSymbolicName();
+            String referencedBundleSymbolicName = instructions.getSymbolicName();
+            String version;
+            if (request.isShouldBundleBinaryFile()) {
+                // take user-defined or proposed version
+                version = instructions.getVersion();
+            } else {
+                // do not take user-defined and take proposed version
+                // there is no bundling -> so cannot take version from instructions
+                version = instructions.getProposedVersion();
+            }
+            String name = instructions.getSourceName();
+            Jar jar = new Jar(request.getSourceInputFile());
+            try {
+                Manifest manifest = getManifest(jar);
+                decorateSourceManifest(manifest, name, referencedBundleSymbolicName, symbolicName, version);
+                jar.setManifest(manifest);
+                jar.write(request.getSourceOutputFile());
+            } finally {
+                jar.close();
+            }
         }
     }
 

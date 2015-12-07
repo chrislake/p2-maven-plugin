@@ -38,13 +38,13 @@ public class ArtifactBundlerRequest {
     private File sourceOutputFile;
     private final boolean shouldBundleSourceFile;
 
-    public ArtifactBundlerRequest(File binaryInputFile, File binaryOutputFile, File sourceInputFile, File sourceOutputFile, boolean shouldBundle) {
+    public ArtifactBundlerRequest(File binaryInputFile, File binaryOutputFile, File sourceInputFile, File sourceOutputFile, boolean shouldBundle, boolean shouldBundleSource) {
         this.binaryInputFile = binaryInputFile;
         this.binaryOutputFile = binaryOutputFile;
         this.sourceInputFile = sourceInputFile;
         this.sourceOutputFile = sourceOutputFile;
         this.shouldBundleBinaryFile = shouldBundle;
-        this.shouldBundleSourceFile = true; // source is always (re)bundled
+        this.shouldBundleSourceFile = shouldBundleSource; // source is always (re)bundled
     }
 
     public File getBinaryInputFile() {

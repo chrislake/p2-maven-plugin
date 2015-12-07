@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -425,18 +426,21 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         ArtifactBundler bundler = getArtifactBundler();
         ArtifactBundlerInstructions bundlerInstructions = P2Helper.createBundlerInstructions(p2Artifact, resolvedArtifact);
         ArtifactBundlerRequest bundlerRequest = P2Helper.createBundlerRequest(p2Artifact, resolvedArtifact, bundlesDestinationFolder);
-        bundler.execute(bundlerRequest, bundlerInstructions);
+        bundler.execute(bundlerRequest, bundlerInstructions, destinationDirectory);
     }
 
     private void handleFeature(P2Artifact p2Artifact, ResolvedArtifact resolvedArtifact) {
         log.debug("Handling feature " + p2Artifact.getId());
         ArtifactBundlerRequest bundlerRequest = P2Helper.createBundlerRequest(p2Artifact, resolvedArtifact, featuresDestinationFolder);
         try {
+            FileUtils.forceMkdir(new File(bundlerRequest.getBinaryOutputFile().getParent()));
             File inputFile = bundlerRequest.getBinaryInputFile();
             File outputFile = bundlerRequest.getBinaryOutputFile();
             //This will also copy the input to the output
             JarUtils.adjustFeatureQualifierVersionWithTimestamp(inputFile, outputFile);
             log.info("Copied " + inputFile + " to " + outputFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
         } catch (Exception ex) {
             throw new RuntimeException("Error while bundling jar or source: " + bundlerRequest.getBinaryInputFile().getName(), ex);
         }

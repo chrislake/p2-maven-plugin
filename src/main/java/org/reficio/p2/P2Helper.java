@@ -20,7 +20,6 @@ package org.reficio.p2;
 
 import aQute.lib.osgi.Analyzer;
 import aQute.lib.osgi.Jar;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.reficio.p2.bundler.ArtifactBundlerInstructions;
 import org.reficio.p2.bundler.ArtifactBundlerRequest;
@@ -53,28 +52,21 @@ public class P2Helper {
         Artifact artifact = resolvedArtifact.getArtifact();
         Artifact sourceArtifact = resolvedArtifact.getSourceArtifact();
         // group output in separate folder by groupId
-        File artifactOutputFolder = forceMkdirSilently(new File(outputFolder, artifact.getGroupId()));
+        File artifactOutputFolder = new File(outputFolder, artifact.getGroupId());
 
         File binaryInputFile = artifact.getFile();
         File binaryOutputFile = new File(artifactOutputFolder, artifact.getFile().getName());
         File sourceInputFile = null;
         File sourceOutputFile = null;
+        boolean shouldBundleSource = false;
         if (sourceArtifact != null) {
             sourceInputFile = sourceArtifact.getFile();
             sourceOutputFile = new File(artifactOutputFolder, sourceArtifact.getFile().getName());
+            shouldBundleSource = true;
         }
         boolean bundle = BundleUtils.INSTANCE.isBundle(artifact.getFile());
         boolean shouldBundle = shouldBundle(p2Artifact, resolvedArtifact, bundle);
-        return new ArtifactBundlerRequest(binaryInputFile, binaryOutputFile, sourceInputFile, sourceOutputFile, shouldBundle);
-    }
-
-    private static File forceMkdirSilently(File folder) {
-        try {
-            FileUtils.forceMkdir(folder);
-            return folder;
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+        return new ArtifactBundlerRequest(binaryInputFile, binaryOutputFile, sourceInputFile, sourceOutputFile, shouldBundle, shouldBundleSource);
     }
 
     private static boolean shouldBundle(P2Artifact p2Artifact, ResolvedArtifact resolvedArtifact, boolean resolvedArtifactIsBundle) {
@@ -176,8 +168,9 @@ public class P2Helper {
                 version = BundleUtils.INSTANCE.calculateBundleVersion(resolvedArtifact.getArtifact());
             }
         }
-        // if still contains snapshot (manually set by the user) -> "SNAPSHOT" will be manually replaced
+        // Ensure that any leading 0's in the version are removed.
         version = version.replaceFirst("^0*(\\d+)\\.0*(\\d+)\\.0*(\\d+)", "$1.$2.$3");
+        // if still contains snapshot (manually set by the user) -> "SNAPSHOT" will be manually replaced
         return BundleUtils.INSTANCE.cleanupVersion(JarUtils.replaceSnapshotWithTimestamp(version));
     }
 

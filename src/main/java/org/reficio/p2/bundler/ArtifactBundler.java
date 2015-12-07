@@ -26,6 +26,6 @@ package org.reficio.p2.bundler;
  */
 public interface ArtifactBundler {
 
-    void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions);
+    void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, String finalDestinationDirectory);
 
 }
