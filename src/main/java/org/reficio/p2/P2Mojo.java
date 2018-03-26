@@ -303,7 +303,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         artifacts = artifacts != null ? artifacts : new ArrayList<P2Artifact>();
         features = features != null ? features : new ArrayList<P2Artifact>();
         p2 = p2 != null ? p2 : new ArrayList<EclipseArtifact>();
-        p2Features = p2Features != null ? p2Features : new ArrayList<EclipseFeature>();
+        featureDefinitions = featureDefinitions != null ? featureDefinitions : new ArrayList<P2FeatureDefinition>();
     }
 
     private void initializeRepositorySystem() {
@@ -457,7 +457,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
                 p2.shouldIncludeSources()));
     }
 
-    private void logResolving(EclipseFeature p2Feature) {
+    private void logResolving(P2FeatureDefinition p2Feature) {
         log.debug(String.format("Resolving feature=[%s]", p2Feature.getId()));
     }
 
@@ -581,8 +581,8 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
 
     private void processEclipseFeatures() throws IOException, MojoExecutionException {
         DefaultEclipseResolver resolver = new DefaultEclipseResolver(projectRepos, featuresDestinationFolder);
-        log.info("Resolving " + p2Features.size() + " p2 features");
-        for (EclipseFeature feature : p2Features) {
+        log.info("Resolving " + featureDefinitions.size() + " p2 features");
+        for (P2FeatureDefinition feature : featureDefinitions) {
             String[] tokens = feature.getId().split(":");
             if (tokens.length != 2) {
                 throw new RuntimeException("Wrong format " + feature.getId());

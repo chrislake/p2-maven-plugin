@@ -20,7 +20,9 @@ package org.reficio.p2;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents one &lt;feature&gt; section in the plugin configuration.
@@ -48,6 +50,8 @@ public class P2FeatureDefinition  {
 	private List<P2Artifact> artifacts;
 	private boolean unpack;
 	
+    private boolean transitive = false;
+    private Map<String, String> filter = new HashMap<String, String>();
 	
 	public File getFeatureFile() {
 		return featureFile;
@@ -129,4 +133,16 @@ public class P2FeatureDefinition  {
 		this.unpack = unpack;
 	}
 	
+    public boolean isTransitive() {
+        return transitive;
+    }
+
+    public void setTransitive(boolean transitive) {
+        this.transitive = transitive;
+    }
+
+    public Map<String, String> getFilter() {
+        return filter;
+    }
+
 }
