@@ -50,6 +50,11 @@ public class P2Artifact {
     private boolean override = false;
 
     /**
+     * Indicator to keep OSGi manifest
+     */
+    private boolean keepOsgi = !override;
+
+    /**
      * Indicator to include source dependencies
      */
     private boolean source = false;
@@ -102,6 +107,14 @@ public class P2Artifact {
 
     public void setOverride(boolean override) {
         this.override = override;
+    }
+
+    public boolean shouldKeepOSGiManifest() {
+        return keepOsgi;
+    }
+
+    public void setKeepOSGi(boolean keepOSGi) {
+        this.keepOsgi = keepOSGi;
     }
 
     public void setSingleton(boolean singleton) {

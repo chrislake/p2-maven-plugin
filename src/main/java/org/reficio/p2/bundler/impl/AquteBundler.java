@@ -57,6 +57,7 @@ public class AquteBundler implements ArtifactBundler {
     @Override
     public void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, String finalDestinationDirectory) {
 
+
         String proposedBinaryJarName = request.getBinaryOutputFile().getName();
         proposedBinaryJarName = instructions.getSymbolicName() + "_" + instructions.getVersion() + ".jar";
 
@@ -73,14 +74,15 @@ public class AquteBundler implements ArtifactBundler {
 
         try {
             log().debug("Executing Bundler:");
-            doWrap(request, instructions, shouldCopy);
+            doWrap(request, instructions, shouldCopy, osgiOverride);
             doSourceWrap(request, instructions, shouldCopySource);
         } catch (Exception ex) {
             throw new RuntimeException("Error while bundling jar or source: " + request.getBinaryInputFile().getName(), ex);
         }
     }
 
-    private void doWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, boolean shouldCopy) throws Exception {
+    private void doWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, boolean shouldCopy,
+            Map<String, String> osgiOverride) throws Exception {
         if (request.isShouldBundleBinaryFile() && shouldCopy) {
             forceMkdirSilently(new File(request.getBinaryOutputFile().getParent()));
             prepareOutputFile(request.getBinaryOutputFile());
@@ -89,7 +91,7 @@ public class AquteBundler implements ArtifactBundler {
         } else {
             log().debug("\t [SKIP] " + request.getBinaryInputFile().getName());
             if (shouldCopy) {
-                handleBundleJarWrap(request, instructions);
+                handleBundleJarWrap(request, instructions, osgiOverride);
             }
         }
     }
@@ -144,7 +146,8 @@ public class AquteBundler implements ArtifactBundler {
         }
     }
 
-    private void handleBundleJarWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions) throws IOException {
+    private void handleBundleJarWrap(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions,
+            Map<String, String> osgiOverride) throws IOException {
         // in general this method does not modify the jar since it's already a bundle
         // so the file is copied only
         FileUtils.copyFile(request.getBinaryInputFile(), request.getBinaryOutputFile());
@@ -153,6 +156,12 @@ public class AquteBundler implements ArtifactBundler {
             // in case it's a snapshot and the version does not contain a timestamp but a generic "SNAPSHOT" string only
             // the "SNAPSHOT" string is replaces with the manually generated timestamp
             JarUtils.adjustSnapshotOutputVersion(request.getBinaryInputFile(), request.getBinaryOutputFile(), instructions.getProposedVersion());
+        }
+        if (!osgiOverride.isEmpty()) {
+            boolean success = JarUtils.attemptOSGiOverride(request.getBinaryInputFile(), request.getBinaryOutputFile(), osgiOverride);
+            if (success) {
+                removeSignature(request.getBinaryOutputFile());
+            }
         }
     }
 
@@ -181,6 +190,7 @@ public class AquteBundler implements ArtifactBundler {
                 decorateSourceManifest(manifest, name, referencedBundleSymbolicName, symbolicName, version);
                 jar.setManifest(manifest);
                 jar.write(request.getSourceOutputFile());
+                removeSignature(request.getSourceOutputFile());
             } finally {
                 jar.close();
             }

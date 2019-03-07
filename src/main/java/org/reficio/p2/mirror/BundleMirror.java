@@ -23,6 +23,7 @@ import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.reficio.p2.utils.Utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,8 +42,6 @@ import static org.twdata.maven.mojoexecutor.MojoExecutor.*;
  * @since 1.0.0
  */
 public class BundleMirror {
-
-    private static final String TYCHO_VERSION = "0.24.0";
 
     private final Boolean includePacked;
     private final Boolean followStrictOnly;
@@ -100,7 +99,7 @@ public class BundleMirror {
                 plugin(
                         groupId("org.eclipse.tycho.extras"),
                         artifactId("tycho-p2-extras-plugin"),
-                        version(TYCHO_VERSION)
+                        version(Utils.TYCHO_VERSION)
                 ),
                 goal("mirror"),
                 config,

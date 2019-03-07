@@ -64,7 +64,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 
@@ -148,6 +151,24 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
      */
     @Parameter(defaultValue = "false")
     private boolean pedantic;
+
+    /**
+     * Specify instructions for all p2artifacts.
+     */
+    @Parameter(name = "global-instructions")
+    private final Map<String, String> globalInstructions = new LinkedHashMap<String, String>();
+
+    /**
+     * Specify instructions to override in existing OSGi bundles.
+     */
+    @Parameter(name = "osgi-override")
+    private final Map<String, String> osgiOverride = new LinkedHashMap<String, String>();
+
+    /**
+     * Specify override for all p2artifacts.
+     */
+    @Parameter(name = "keep-osgi", defaultValue = "false")
+    private boolean keepOsgi;
 
     /**
      * Skip invalid artifacts.
@@ -248,11 +269,23 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
     private List<EclipseArtifact> p2;
 
     /**
+     * A list of Eclipse features that should be downloaded from P2 repositories
+     */
+    @Parameter(readonly = true)
+    private List<EclipseFeature> p2Features;
+
+    /**
      * A list of definitions of eclipse features
      *
      */
     @Parameter(readonly=true)
     private List<P2FeatureDefinition> featureDefinitions;
+
+    /**
+     * Version number for the repository feature
+     */
+    @Parameter(defaultValue = "1.0")
+    private String repoFeatureVersion;
 
     /**
      * Logger retrieved from the Maven internals.
@@ -284,6 +317,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
             processFeatures();
             processEclipseArtifacts();
             processEclipseFeatures();
+            runFeatureGen();
             executeP2PublisherPlugin();
             executeCategoryPublisher();
             cleanupEnvironment();
@@ -303,7 +337,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         artifacts = artifacts != null ? artifacts : new ArrayList<P2Artifact>();
         features = features != null ? features : new ArrayList<P2Artifact>();
         p2 = p2 != null ? p2 : new ArrayList<EclipseArtifact>();
-        featureDefinitions = featureDefinitions != null ? featureDefinitions : new ArrayList<P2FeatureDefinition>();
+        p2Features = p2Features != null ? p2Features : new ArrayList<EclipseFeature>();
     }
 
     private void initializeRepositorySystem() {
@@ -328,10 +362,29 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         if (includeDependencies) {
             for (org.apache.maven.artifact.Artifact defArtifact : project.getDependencyArtifacts()) {
                 P2Artifact p2Artifact = new P2Artifact();
-                p2Artifact.setId(defArtifact.getGroupId() + ":" + defArtifact.getArtifactId() + ":" + defArtifact.getVersion());
+                if (defArtifact.getClassifier() == null) {
+                    p2Artifact.setId(defArtifact.getGroupId() + ":" + defArtifact.getArtifactId() + ":"
+                            + defArtifact.getVersion());
+                } else {
+                    p2Artifact.setId(defArtifact.getGroupId() + ":" + defArtifact.getArtifactId() + ":jar:"
+                            + defArtifact.getClassifier() + ":" + defArtifact.getVersion());
+                }
                 p2Artifact.setIncludeSources(dependenciesSource);
                 p2Artifact.setTransitive(dependenciesTransitive);
-                artifacts.add(p2Artifact);
+
+                boolean skip = false;
+                for (P2Artifact p2DependencyInstrucions : artifacts) {
+                    String artifactWOVersion = p2DependencyInstrucions.getId() + ":";
+                    if (p2Artifact.getId().startsWith(artifactWOVersion)) {
+                        p2DependencyInstrucions.setId(p2Artifact.getId());
+                        p2DependencyInstrucions.setIncludeSources(dependenciesSource);
+                        p2DependencyInstrucions.setTransitive(dependenciesTransitive);
+                        skip = true;
+                    }
+                }
+                if (!skip) {
+                    artifacts.add(p2Artifact);
+                }
             }
         }
     }
@@ -422,6 +475,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         Multimap<P2Artifact, ResolvedArtifact> resolvedArtifacts = ArrayListMultimap.create();
         for (P2Artifact p2Artifact : artifacts) {
             logResolving(p2Artifact);
+            appendGlobalInstructions(p2Artifact);
             ArtifactResolutionResult resolutionResult;
             try {
                 resolutionResult = resolveArtifact(p2Artifact);
@@ -442,6 +496,26 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         return resolvedArtifacts;
     }
 
+    private void appendGlobalInstructions(P2Artifact p2Artifact) {
+        if (!globalInstructions.isEmpty()) {
+            if (p2Artifact.getInstructions().isEmpty()) {
+                p2Artifact.setInstructions(globalInstructions);
+                p2Artifact.setKeepOSGi(keepOsgi);
+            } else {
+                for (Entry<String, String> entry : globalInstructions.entrySet()) {
+                    if (p2Artifact.getInstructions().containsKey(entry.getKey())) {
+                        String value = p2Artifact.getInstructions().get(entry.getKey());
+                        value += "," + entry.getValue();
+                        p2Artifact.getInstructions().put(entry.getKey(), value);
+                    } else {
+                        p2Artifact.getInstructions().put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            p2Artifact.setOverride(true);
+        }
+    }
+
     private Multimap<P2Artifact, ResolvedArtifact> resolveFeatures() {
         Multimap<P2Artifact, ResolvedArtifact> resolvedArtifacts = ArrayListMultimap.create();
         for (P2Artifact p2Artifact : features) {
@@ -457,7 +531,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
                 p2.shouldIncludeSources()));
     }
 
-    private void logResolving(P2FeatureDefinition p2Feature) {
+    private void logResolving(EclipseFeature p2Feature) {
         log.debug(String.format("Resolving feature=[%s]", p2Feature.getId()));
     }
 
@@ -538,7 +612,7 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
         ArtifactBundler bundler = getArtifactBundler();
         ArtifactBundlerInstructions bundlerInstructions = P2Helper.createBundlerInstructions(p2Artifact, resolvedArtifact, timestamp);
         ArtifactBundlerRequest bundlerRequest = P2Helper.createBundlerRequest(p2Artifact, resolvedArtifact, bundlesDestinationFolder);
-        bundler.execute(bundlerRequest, bundlerInstructions, destinationDirectory);
+        bundler.execute(bundlerRequest, bundlerInstructions, destinationDirectory, osgiOverride);
         return bundlerInstructions;
     }
 
@@ -581,8 +655,8 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
 
     private void processEclipseFeatures() throws IOException, MojoExecutionException {
         DefaultEclipseResolver resolver = new DefaultEclipseResolver(projectRepos, featuresDestinationFolder);
-        log.info("Resolving " + featureDefinitions.size() + " p2 features");
-        for (P2FeatureDefinition feature : featureDefinitions) {
+        log.info("Resolving " + p2Features.size() + " p2 features");
+        for (EclipseFeature feature : p2Features) {
             String[] tokens = feature.getId().split(":");
             if (tokens.length != 2) {
                 throw new RuntimeException("Wrong format " + feature.getId());
@@ -683,6 +757,10 @@ public class P2Mojo extends AbstractMojo implements Contextualizable {
             IOUtils.closeQuietly(writer);
             categoryFileURL = categoryDefinitionFile.getAbsolutePath();
         }
+    }
+
+    private void runFeatureGen() {
+        FeatureGen.execute(buildDirectory + BUNDLES_TOP_FOLDER, destinationDirectory, repoFeatureVersion);
     }
 
     private void cleanupEnvironment() throws IOException {

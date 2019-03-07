@@ -35,6 +35,8 @@ import org.w3c.dom.NodeList;
 import java.io.*;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -66,6 +68,37 @@ public class JarUtils {
                 jar.close();
             }
         }
+    }
+
+    public static boolean attemptOSGiOverride(File inputFile, File outputFile, Map<String, String> osgiOverride) {
+        Jar jar = null;
+        boolean result = false;
+        try {
+            jar = new Jar(inputFile);
+            Manifest manifest = jar.getManifest();
+            Attributes attributes = manifest.getMainAttributes();
+            for (Entry<String, String> override : osgiOverride.entrySet()) {
+                String ovrKey = override.getKey();
+                String ovrValue = override.getValue();
+                // Only override, do not add
+                String manifestValue = attributes.getValue(ovrKey);
+                if (null != manifestValue && !manifestValue.equals(ovrValue)) {
+                    attributes.putValue(ovrKey, ovrValue);
+                    result = true;
+                }
+            }
+            if (result) {
+                jar.write(outputFile);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot open jar " + outputFile, e);
+        } finally {
+            if (jar != null) {
+                jar.close();
+            }
+        }
+        
+        return result;
     }
     
     /**

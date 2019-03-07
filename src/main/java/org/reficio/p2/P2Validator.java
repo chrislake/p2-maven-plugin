@@ -46,7 +46,7 @@ public class P2Validator {
         boolean bundle = BundleUtils.INSTANCE.isBundle(resolvedArtifact.getArtifact().getFile());
         if (resolvedArtifact.isRoot() && bundle) {
             // artifact is a bundle and somebody specified instructions without override
-            if (!p2Artifact.shouldOverrideManifest() && !p2Artifact.getInstructions().isEmpty()) {
+            if (!p2Artifact.shouldOverrideManifest() && !p2Artifact.getInstructions().isEmpty() && !p2Artifact.shouldKeepOSGiManifest()) {
                 String message = String.format("p2-maven-plugin misconfiguration" +
                         "\n\n\tJar [%s] is already a bundle. " +
                         "\n\tBND instructions are specified, but the <override> flag is set to false." +

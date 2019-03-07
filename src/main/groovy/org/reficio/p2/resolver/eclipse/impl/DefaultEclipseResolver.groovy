@@ -65,17 +65,18 @@ class DefaultEclipseResolver implements EclipseResolver {
         for (def repository : repositories) {
             if (repository.type == "p2") {
                 String url = repository.url + request.getTypeDirectory() + name
-                Logger.getLog().info("\tDownloading: " + url)
+                Logger.getLog().info("\tDownloading: " + url.toURL())
                 try {
                     use(FileBinaryCategory)
                             {
                                 file << url.toURL()
                             }
                     if (file.exists()) {
-                        request.setSourceURL(repository.url);
+                        request.setSourceURL(repository.url.toURL().toString())
                         return file
                     }
                 } catch (Exception ex) {
+                    Logger.getLog().info("An error occurred: " + ex.toString())
                 }
             }
         }

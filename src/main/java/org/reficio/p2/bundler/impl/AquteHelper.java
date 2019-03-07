@@ -80,8 +80,21 @@ public class AquteHelper {
 
     private static void setInstructions(Analyzer analyzer, ArtifactBundlerInstructions instructions) {
         if (!instructions.getInstructions().isEmpty()) {
-            analyzer.setProperties(BundleUtils.transformDirectivesToProperties(instructions.getInstructions()));
-        }
+			String versionInstrustion = "";
+			if (instructions.getInstructions().containsKey(Analyzer.EXPORT_PACKAGE)) {
+				versionInstrustion = instructions.getInstructions().get(Analyzer.EXPORT_PACKAGE).toString();
+				versionInstrustion += ";version=" + instructions.getVersion();
+			}
+			else {
+				versionInstrustion = "*;version=" + instructions.getVersion();
+			}
+			instructions.getInstructions().put(Analyzer.EXPORT_PACKAGE, versionInstrustion);
+		}
+		else {
+			String versionInstrustion = "*;version=" + instructions.getVersion();
+			instructions.getInstructions().put(Analyzer.EXPORT_PACKAGE, versionInstrustion);
+		}
+        analyzer.setProperties(BundleUtils.transformDirectivesToProperties(instructions.getInstructions()));
     }
 
     private static Jar getInputJarWithBlankManifest(ArtifactBundlerRequest request) throws Exception {

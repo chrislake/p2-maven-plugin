@@ -16,19 +16,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.reficio.p2.bundler;
+package org.reficio.p2;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @author Tom Bujok (tom.bujok@gmail.com)<br>
  *         Reficio (TM) - Reestablish your software!<br>
  *         http://www.reficio.org
- * @since 1.1.0
+ * @since 1.1.2
  */
-public interface ArtifactBundler {
+public class EclipseFeature {
 
-    void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, String finalDestinationDirectory,
-            Map<String, String> osgiOverride);
+    /**
+     * Feature file name as it appears in the P2 update site.
+     * If the feature file is: "org.eclipse.rap.feature.feature.group_2.0.0.20130205-1849" the id is: "org.eclipse.rap.feature.feature.group:2.0.0.20130205-1849".
+     */
+    private String id;
+
+    private boolean transitive = false;
+
+    private Map<String, String> filter = new HashMap<String, String>();
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public boolean isTransitive() {
+        return transitive;
+    }
+
+    public void setTransitive(boolean transitive) {
+        this.transitive = transitive;
+    }
+
+    public Map<String, String> getFilter() {
+        return filter;
+    }
 
 }

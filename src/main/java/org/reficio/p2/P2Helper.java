@@ -20,6 +20,7 @@ package org.reficio.p2;
 
 import aQute.bnd.osgi.Analyzer;
 import aQute.bnd.osgi.Jar;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.reficio.p2.bundler.ArtifactBundlerInstructions;
 import org.reficio.p2.bundler.ArtifactBundlerRequest;
@@ -32,6 +33,7 @@ import org.reficio.p2.utils.Utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 /**
  * Glues together the following independent modules that know nothing about the
@@ -53,7 +55,7 @@ public class P2Helper {
         Artifact artifact = resolvedArtifact.getArtifact();
         Artifact sourceArtifact = resolvedArtifact.getSourceArtifact();
         // group output in separate folder by groupId
-        File artifactOutputFolder = new File(outputFolder, artifact.getGroupId());
+        File artifactOutputFolder = forceMkdirSilently(new File(outputFolder, artifact.getGroupId()));
 
         File binaryInputFile = artifact.getFile();
         File binaryOutputFile = new File(artifactOutputFolder, artifact.getFile().getName());
@@ -72,9 +74,18 @@ public class P2Helper {
     }
 
 
+    private static File forceMkdirSilently(File folder) {
+        try {
+            FileUtils.forceMkdir(folder);
+            return folder;
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
     private static boolean shouldBundle(P2Artifact p2Artifact, ResolvedArtifact resolvedArtifact, boolean resolvedArtifactIsBundle) {
         if (resolvedArtifactIsBundle) {
-            if (p2Artifact.shouldOverrideManifest() && resolvedArtifact.isRoot()) {
+            if (p2Artifact.shouldOverrideManifest() && resolvedArtifact.isRoot() && !p2Artifact.shouldKeepOSGiManifest()) {
                 return true;
             } else {
                 return false;
@@ -182,6 +193,15 @@ public class P2Helper {
         }
         // Ensure that any leading 0's in the version are removed.
         version = version.replaceFirst("^0*(\\d+)\\.0*(\\d+)\\.0*(\\d+)", "$1.$2.$3");
+        while (version.endsWith("."))
+            version = version.substring(0, version.length() - 1);
+
+        // Ensure the version is three digits
+        String regex = "^\\d+\\.\\d+\\.\\d+";
+        Pattern pattern = Pattern.compile(regex);
+        while (!pattern.matcher(version).find())
+            version += ".0";
+
         // if still contains snapshot (manually set by the user) -> "SNAPSHOT" will be manually replaced
         return BundleUtils.INSTANCE.cleanupVersion(Utils.snapshotToTimestamp(version, timestamp));
     }
