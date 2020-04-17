@@ -55,6 +55,11 @@ public class P2Artifact {
     private boolean keepOsgi = !override;
 
     /**
+     * Indicator to keep signature data
+     */
+    private boolean removeSignatures = true;
+
+    /**
      * Indicator to include source dependencies
      */
     private boolean source = false;
@@ -115,6 +120,14 @@ public class P2Artifact {
 
     public void setKeepOSGi(boolean keepOSGi) {
         this.keepOsgi = keepOSGi;
+    }
+
+    public boolean shouldRemoveSignatures() {
+        return removeSignatures;
+    }
+
+    public void setRemoveSignatures(boolean removeSigntatures) {
+        this.removeSignatures = removeSigntatures;
     }
 
     public void setSingleton(boolean singleton) {

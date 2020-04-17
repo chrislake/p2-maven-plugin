@@ -30,6 +30,7 @@ import org.reficio.p2.utils.JarUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -55,8 +56,8 @@ public class AquteBundler implements ArtifactBundler {
     }
 
     @Override
-    public void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, String finalDestinationDirectory) {
-
+    public void execute(ArtifactBundlerRequest request, ArtifactBundlerInstructions instructions, String finalDestinationDirectory,
+            Map<String, String> osgiOverride) {
 
         String proposedBinaryJarName = request.getBinaryOutputFile().getName();
         proposedBinaryJarName = instructions.getSymbolicName() + "_" + instructions.getVersion() + ".jar";
@@ -123,7 +124,6 @@ public class AquteBundler implements ArtifactBundler {
         try {
             populateJar(analyzer, request.getBinaryOutputFile());
             bundleUtils.reportErrors(analyzer);
-            removeSignature(request.getBinaryOutputFile());
         } finally {
             analyzer.close();
         }
@@ -158,8 +158,12 @@ public class AquteBundler implements ArtifactBundler {
             JarUtils.adjustSnapshotOutputVersion(request.getBinaryInputFile(), request.getBinaryOutputFile(), instructions.getProposedVersion());
         }
         if (!osgiOverride.isEmpty()) {
-            boolean success = JarUtils.attemptOSGiOverride(request.getBinaryInputFile(), request.getBinaryOutputFile(), osgiOverride);
-            if (success) {
+            if (request.isShouldRemoveSignatures()) {
+                JarUtils.attemptOSGiOverride(request.getBinaryInputFile(), request.getBinaryOutputFile(), osgiOverride);
+            }
+        }
+        else {
+            if (request.isShouldRemoveSignatures()) {
                 removeSignature(request.getBinaryOutputFile());
             }
         }
@@ -190,7 +194,6 @@ public class AquteBundler implements ArtifactBundler {
                 decorateSourceManifest(manifest, name, referencedBundleSymbolicName, symbolicName, version);
                 jar.setManifest(manifest);
                 jar.write(request.getSourceOutputFile());
-                removeSignature(request.getSourceOutputFile());
             } finally {
                 jar.close();
             }

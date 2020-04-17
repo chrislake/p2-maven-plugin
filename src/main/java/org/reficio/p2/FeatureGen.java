@@ -29,6 +29,8 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
@@ -51,6 +53,7 @@ public class FeatureGen {
 		final PathMatcher jarExt = FileSystems.getDefault().getPathMatcher("glob:*.jar");
 		final Document doc;
 		final Element mainRootElement;
+		final List<String> bundleSymbolicNames = new ArrayList<String>();
 
 		public JarVisitor(Document doc, Element mainRootElement) {
 			this.doc = doc;
@@ -104,6 +107,12 @@ public class FeatureGen {
 					unpack = manifest.getMainAttributes().getValue("Eclipse-BundleShape");
 					host = manifest.getMainAttributes().getValue("Fragment-Host");
 				}
+
+				String identifier = String.format("%1s_%1s", name, version);
+				if (bundleSymbolicNames.contains(identifier)) {
+					return FileVisitResult.CONTINUE;
+				}
+				bundleSymbolicNames.add(identifier);
 
 				Element plugin = doc.createElement("plugin");
 				plugin.setAttribute("id", name.trim());

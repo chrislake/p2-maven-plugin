@@ -32,19 +32,22 @@ public class ArtifactBundlerRequest {
     private File binaryInputFile;
     private File binaryOutputFile;
     private final boolean shouldBundleBinaryFile;
+    private final boolean shouldRemoveSignatures;
 
     // jar file with sources
     private File sourceInputFile;
     private File sourceOutputFile;
     private final boolean shouldBundleSourceFile;
 
-    public ArtifactBundlerRequest(File binaryInputFile, File binaryOutputFile, File sourceInputFile, File sourceOutputFile, boolean shouldBundle, boolean shouldBundleSource) {
+    public ArtifactBundlerRequest(File binaryInputFile, File binaryOutputFile, File sourceInputFile, File sourceOutputFile, boolean shouldBundle, boolean shouldBundleSource,
+            boolean shouldRemoveSignatures) {
         this.binaryInputFile = binaryInputFile;
         this.binaryOutputFile = binaryOutputFile;
         this.sourceInputFile = sourceInputFile;
         this.sourceOutputFile = sourceOutputFile;
         this.shouldBundleBinaryFile = shouldBundle;
         this.shouldBundleSourceFile = shouldBundleSource; // source is always (re)bundled
+        this.shouldRemoveSignatures = shouldRemoveSignatures;
     }
 
     public File getBinaryInputFile() {
@@ -85,5 +88,9 @@ public class ArtifactBundlerRequest {
 
     public boolean isShouldBundleSourceFile() {
         return shouldBundleSourceFile;
+    }
+
+    public boolean isShouldRemoveSignatures() {
+        return shouldRemoveSignatures;
     }
 }

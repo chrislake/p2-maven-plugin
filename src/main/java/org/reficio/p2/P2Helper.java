@@ -70,7 +70,9 @@ public class P2Helper {
         }
         boolean bundle = BundleUtils.INSTANCE.isBundle(artifact.getFile());
         boolean shouldBundle = shouldBundle(p2Artifact, resolvedArtifact, bundle);
-        return new ArtifactBundlerRequest(binaryInputFile, binaryOutputFile, sourceInputFile, sourceOutputFile, shouldBundle, shouldBundleSource);
+        boolean shouldRemoveSignatures = p2Artifact.shouldRemoveSignatures();
+        return new ArtifactBundlerRequest(binaryInputFile, binaryOutputFile, sourceInputFile, sourceOutputFile, shouldBundle, shouldBundleSource,
+                shouldRemoveSignatures);
     }
 
 
